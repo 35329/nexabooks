@@ -1,0 +1,54 @@
+/* =====================================================================
+   Print styles – A4 documents and reports.
+   Flow: NB.docs.print() renders the document HTML into #print-root,
+   adds body.print-mode, calls window.print(), then cleans up.
+   Laravel: the same rules apply to Blade document views; production PDFs
+   should be generated server-side (e.g. Browsershot / wkhtmltopdf / DomPDF).
+   ===================================================================== */
+
+#print-root { display: none; }
+
+@page {
+  size: A4 portrait;
+  margin: 12mm 0 14mm 0;
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt Inter, Arial, sans-serif; color: #5b6680; margin-right: 14mm; }
+}
+@page :first { margin-top: 0; }
+
+@media print {
+  html, body { background: #fff !important; }
+  body * { visibility: visible; }
+  #app, #modal-root, #toast-root, #pdf-host { display: none !important; }
+
+  body.print-mode #print-root { display: block !important; }
+
+  /* Fallback: printing straight from the browser menu prints the current view without chrome */
+  body:not(.print-mode) #app { display: block !important; }
+  body:not(.print-mode) #sidebar,
+  body:not(.print-mode) #sidebar-overlay,
+  body:not(.print-mode) header,
+  body:not(.print-mode) .no-print,
+  body:not(.print-mode) button { display: none !important; }
+  body:not(.print-mode) .main-col { padding-left: 0 !important; }
+
+  #print-root .doc {
+    width: 100% !important;
+    min-height: 0 !important;
+    box-shadow: none !important;
+    padding-bottom: 0 !important;
+  }
+  #print-root .doc + .doc { break-before: page; page-break-before: always; }
+  #print-root .doc.tpl-classic .d-band { margin-left: -54px; margin-right: -54px; }
+
+  /* Keep important blocks together */
+  .doc .d-summary, .doc .d-sign, .doc .d-section, .doc .d-amount-box, .doc .d-kpis { break-inside: avoid; page-break-inside: avoid; }
+  .doc table { page-break-inside: auto; }
+  .doc tr { break-inside: avoid; page-break-inside: avoid; }
+  .doc thead { display: table-header-group; }
+  .doc tfoot { display: table-row-group; }
+  .doc .d-footer { break-inside: avoid; }
+
+  /* Grayscale legibility: accent fills keep dark backgrounds with white text */
+  .doc { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { text-decoration: none; color: inherit; }
+}

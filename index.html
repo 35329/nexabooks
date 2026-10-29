@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexaBooks UAE</title>
+  <meta name="description" content="NexaBooks UAE – quotations, invoicing, receipts and statements of account (frontend prototype).">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+
+  <!-- Tailwind CSS (play CDN, prototype only – Laravel build will use Vite + tailwind.config.js) -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'Segoe UI', 'Roboto', 'Arial', 'sans-serif'],
+            display: ['Manrope', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif']
+          },
+          colors: {
+            navy: { 950: '#0a1428', 900: '#0f1d3a', 800: '#16284d', 700: '#203763', 600: '#2d4677' },
+            brand: { 50: '#eef4ff', 100: '#dce7fe', 200: '#bcd0fd', 500: '#3f6ff2', 600: '#2856e0', 700: '#1f45b8' }
+          },
+          boxShadow: {
+            card: '0 1px 2px rgba(15,29,58,.05), 0 1px 3px rgba(15,29,58,.04)',
+            pop: '0 12px 32px -8px rgba(15,29,58,.25), 0 4px 8px -4px rgba(15,29,58,.1)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Libraries (exact versions) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/print.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+  <div id="app" class="min-h-screen">
+    <!-- ===== Sidebar (Laravel: resources/views/layouts/partials/sidebar.blade.php) ===== -->
+    <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 z-40 flex flex-col bg-navy-900 text-slate-300" aria-label="Main navigation">
+      <div class="flex items-center gap-3 h-16 px-4 border-b border-white/10 shrink-0">
+        <div id="brand-mark" class="brand-mark" aria-hidden="true">N</div>
+        <div class="sidebar-label leading-tight min-w-0">
+          <div id="brand-name" class="font-display font-extrabold text-white text-[15px] tracking-tight truncate">NexaBooks <span class="text-brand-200">UAE</span></div>
+          <div id="brand-company" class="text-[11px] text-slate-400 truncate">Company</div>
+        </div>
+      </div>
+      <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-3 px-3 space-y-5"></nav>
+      <div class="sidebar-label shrink-0 p-3 border-t border-white/10">
+        <div class="rounded-lg bg-white/5 px-3 py-2.5 text-[11px] leading-relaxed text-slate-400">
+          <span class="font-semibold text-slate-200">Prototype build.</span> Data is stored in this browser only.
+        </div>
+      </div>
+    </aside>
+    <div id="sidebar-overlay" class="fixed inset-0 z-30 bg-navy-950/50 hidden lg:hidden"></div>
+
+    <!-- ===== Main column ===== -->
+    <div id="main-col" class="main-col min-h-screen flex flex-col">
+      <!-- Top bar (Laravel: layouts/partials/topbar.blade.php) -->
+      <header class="sticky top-0 z-20 h-16 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center gap-3 px-4 lg:px-6">
+        <button id="btn-sidebar" class="icon-btn" aria-label="Toggle navigation"><i data-lucide="menu"></i></button>
+        <div class="relative flex-1 max-w-xl">
+          <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+          <input id="global-search" type="search" autocomplete="off" placeholder="Search customers, invoices, quotations, receipts…  ( / )"
+                 class="w-full h-10 pl-9 pr-3 rounded-lg bg-slate-100 border border-transparent text-sm placeholder:text-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-100 outline-none transition" aria-label="Global search">
+          <div id="search-results" class="dropdown-panel absolute left-0 right-0 top-12 hidden max-h-[420px] overflow-y-auto"></div>
+        </div>
+        <div class="ml-auto flex items-center gap-1.5">
+          <div class="relative hidden sm:block">
+            <button id="btn-quick-new" class="btn btn-primary h-10"><i data-lucide="plus"></i><span class="hidden md:inline">New</span></button>
+            <div id="quick-new-menu" class="dropdown-panel absolute right-0 top-12 w-56 hidden py-1.5"></div>
+          </div>
+          <div class="relative">
+            <button id="btn-notifications" class="icon-btn relative" aria-label="Notifications"><i data-lucide="bell"></i><span id="notif-count" class="notif-dot hidden"></span></button>
+            <div id="notif-panel" class="dropdown-panel absolute right-0 top-12 w-[340px] max-w-[calc(100vw-2rem)] hidden"></div>
+          </div>
+          <div class="relative">
+            <button id="btn-profile" class="flex items-center gap-2 rounded-lg pl-1 pr-2 h-10 hover:bg-slate-100" aria-label="User menu">
+              <span class="w-8 h-8 rounded-full bg-navy-800 text-white grid place-items-center text-xs font-bold">SA</span>
+              <span class="hidden md:block text-left leading-tight">
+                <span class="block text-sm font-semibold text-slate-800">Sara Al Amiri</span>
+                <span class="block text-[11px] text-slate-500">Finance Manager</span>
+              </span>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 hidden md:block"></i>
+            </button>
+            <div id="profile-panel" class="dropdown-panel absolute right-0 top-12 w-64 hidden py-1.5"></div>
+          </div>
+        </div>
+      </header>
+
+      <main id="view" class="flex-1 px-4 lg:px-8 py-6 w-full max-w-[1500px] mx-auto" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <!-- Overlays -->
+  <div id="modal-root"></div>
+  <div id="toast-root" class="fixed bottom-4 right-4 z-[90] flex flex-col gap-2 items-end" aria-live="polite"></div>
+  <!-- Print-only container: documents are rendered here before window.print() -->
+  <div id="print-root" aria-hidden="true"></div>
+
+  <!-- Application scripts (order matters: core → shared components → modules → boot) -->
+  <script src="assets/js/utils.js"></script>
+  <script src="assets/js/calculations.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/ui.js"></script>
+  <script src="assets/js/line-items.js"></script>
+  <script src="assets/js/documents.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+  <script src="assets/js/customers.js"></script>
+  <script src="assets/js/quotations.js"></script>
+  <script src="assets/js/invoices.js"></script>
+  <script src="assets/js/credit-notes.js"></script>
+  <script src="assets/js/recurring.js"></script>
+  <script src="assets/js/payments.js"></script>
+  <script src="assets/js/statements.js"></script>
+  <script src="assets/js/expenses.js"></script>
+  <script src="assets/js/reports.js"></script>
+  <script src="assets/js/settings.js"></script>
+</body>
+</html>
